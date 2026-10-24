@@ -51,6 +51,8 @@ button.main{background:var(--accent);color:var(--on);border-color:var(--accent);
     <textarea id="ftext" rows="3" placeholder="학생 화면에 '선생님 한마디'로 보여요" style="margin-top:8px"></textarea>
     <div class="row" style="margin-top:8px"><button class="main" id="send">보내기</button><span class="muted" id="smsg"></span></div>
     <div id="past" style="margin-top:10px"></div>
+    <div class="row" style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px"><button id="clr">한마디 모두 지우기</button><button id="rst">이 학생 기록 비우기</button><span class="muted" id="cmsg"></span></div>
+    <p class="muted">기록 비우기는 학생이 앱을 다시 열 때 체크판과 선택이 처음 상태로 돌아가요.</p>
   </div>
 </section>
 </main>
@@ -78,7 +80,8 @@ function boot(){
       login:function(e,p){ return a.signInWithEmailAndPassword(auth,e,p); },
       list:function(){ return f.getDocs(f.collection(db,'students')).then(function(q){ return q.docs.map(function(d){ var x=d.data(); x.code=d.id; return x; }); }); },
       feedback:function(code){ return f.getDoc(f.doc(db,'feedback',code)).then(function(s){ return s.exists()?(s.data().items||[]):[]; }); },
-      send:function(code,items){ return f.setDoc(f.doc(db,'feedback',code),{items:items}); }
+      send:function(code,items){ return f.setDoc(f.doc(db,'feedback',code),{items:items}); },
+      reset:function(code,name){ return f.setDoc(f.doc(db,'students',code),{name:name||'학생',t:Date.now(),state:'',summary:'',reset:true}); }
     };
   });
 }
@@ -102,7 +105,7 @@ function show(s){
 function renderPast(){
   AD.feedback(cur.code).then(function(items){
     cur.items=items; items.sort(function(a,b){return b.t-a.t;});
-    $('past').innerHTML=items.slice(0,5).map(function(f){return '<div class="fb"><small class="muted">'+esc(f.tag)+' · '+fmt(f.t)+'</small><br>'+esc(f.text)+'</div>';}).join('');
+    $('past').innerHTML=items.slice(0,5).map(function(f){return '<div class="fb"><small class="muted">'+esc(f.tag)+' · '+fmt(f.t)+'</small> <button data-d="'+f.t+'" style="padding:2px 8px;font-size:13px">삭제</button><br>'+esc(f.text)+'</div>';}).join('');
   });
 }
 $('go').onclick=function(){
@@ -112,6 +115,17 @@ $('go').onclick=function(){
 };
 $('list').onclick=function(e){ var b=e.target.closest('button[data-i]'); if(b) show(window.__arr[+b.dataset.i]); };
 $('detail').onclick=function(e){ var b=e.target.closest('button[data-t]'); if(b){ $('ftext').value=b.dataset.t; } };
+function twoStep(btn,label,fn){
+  if(btn.dataset.arm){ btn.dataset.arm=''; btn.textContent=label; fn(); return; }
+  btn.dataset.arm='1'; btn.textContent='한 번 더 누르면 실행돼요';
+  setTimeout(function(){ btn.dataset.arm=''; btn.textContent=label; },4000);
+}
+$('clr').onclick=function(){ var b=this; if(!cur) return; twoStep(b,'한마디 모두 지우기',function(){
+  AD.send(cur.code,[]).then(function(){ $('cmsg').textContent='지웠어요'; renderPast(); }).catch(function(){ $('cmsg').textContent='지우지 못했어요'; }); }); };
+$('rst').onclick=function(){ var b=this; if(!cur) return; twoStep(b,'이 학생 기록 비우기',function(){
+  AD.reset(cur.code,cur.name).then(function(){ $('cmsg').textContent='비웠어요'; loadList(); $('detail').hidden=true; cur=null; }).catch(function(){ $('cmsg').textContent='비우지 못했어요'; }); }); };
+$('past').onclick=function(e){ var b=e.target.closest('button[data-d]'); if(!b||!cur) return; var tt=+b.dataset.d;
+  AD.send(cur.code,(cur.items||[]).filter(function(f){return f.t!==tt;})).then(renderPast).catch(function(){ $('cmsg').textContent='지우지 못했어요'; }); };
 $('send').onclick=function(){
   var text=$('ftext').value.trim(); if(!text||!cur) return;
   var items=(cur.items||[]).concat([{t:Date.now(),tag:$('tag').value,text:text}]);
