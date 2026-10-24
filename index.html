@@ -1,0 +1,557 @@
+<title>용이 탐험대</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* layout: one course per screen on an iPad, big tap buttons, course rail on top, prev/next at the bottom */
+:root{
+  --bg:#EDF3F8; --surface:#FFFFFF; --ink:#0E2233; --ink2:#46607A; --line:#C9D8E5;
+  --accent:#D9480F; --on-accent:#FFFFFF; --sel:#FFE8DB; --trail:#1C6FB8; --ok:#1B7F4B;
+  --f-display:"Do Hyeon","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B1622; --surface:#13222F; --ink:#E7EFF6; --ink2:#9CB3C6; --line:#25384A;
+    --accent:#FF8F5A; --on-accent:#1B0B02; --sel:#3A2314; --trail:#6DB4F5; --ok:#5ED394;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B1622; --surface:#13222F; --ink:#E7EFF6; --ink2:#9CB3C6; --line:#25384A;
+  --accent:#FF8F5A; --on-accent:#1B0B02; --sel:#3A2314; --trail:#6DB4F5; --ok:#5ED394;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:17px; line-height:1.6;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+.app{max-width:880px; margin:0 auto; padding-block:20px 56px}
+button{font-family:inherit; font-size:inherit; color:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent}
+button:focus-visible, textarea:focus-visible{outline:3px solid var(--trail); outline-offset:2px}
+h1,h2{font-family:var(--f-display); font-weight:400; margin:0; text-wrap:balance}
+.eyebrow{font-size:13px; letter-spacing:.08em; color:var(--ink2); margin:0 0 4px}
+h1{font-size:clamp(34px,7vw,52px); line-height:1.1}
+.sub{color:var(--ink2); margin:8px 0 0; max-width:34em}
+header{padding-bottom:18px}
+
+.rail{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:8px; margin-bottom:22px}
+.stop{border:2px solid var(--line); background:var(--surface); border-radius:12px; padding:8px 4px 9px; text-align:center; min-height:64px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:13px; line-height:1.25}
+.stop .n{font-family:var(--f-display); font-size:20px; line-height:1}
+.stop.done .n::after{content:" ✓"; color:var(--ok); font-size:15px}
+.stop.cur{border-color:var(--accent); background:var(--sel)}
+
+.sec{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:20px 18px 22px; margin-bottom:16px}
+.sec h2{font-size:26px; margin-bottom:4px}
+.hint{color:var(--ink2); margin:0 0 14px; font-size:15px}
+.q{font-weight:700; margin:20px 0 4px}
+.q:first-of-type{margin-top:6px}
+
+.opt{min-height:56px; padding:10px 16px; border:2px solid var(--line); border-radius:12px; background:var(--surface); text-align:center; line-height:1.35}
+.opt.on{border-color:var(--accent); background:var(--sel); font-weight:700}
+.opt.on::before{content:"✓ "; color:var(--accent)}
+.chips{display:flex; flex-wrap:wrap; gap:10px}
+.chips .opt{min-width:0}
+
+.vs{display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:10px; align-items:center; margin-bottom:12px}
+.vs .opt{min-height:68px; font-size:18px}
+.vsmark{font-family:var(--f-display); font-size:16px; color:var(--ink2)}
+
+.stars{display:flex; gap:8px}
+.star{width:56px; height:56px; border:2px solid var(--line); border-radius:12px; background:var(--surface); font-size:26px; line-height:1; color:var(--line)}
+.star.on{border-color:var(--accent); color:var(--accent); background:var(--sel)}
+
+.jobs{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px}
+.job{border:1px solid var(--line); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:10px; min-width:0}
+.job h3{margin:0; font-size:17px}
+.job p{margin:0; color:var(--ink2); font-size:15px; flex:1}
+.three{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px}
+.three .opt{min-height:48px; padding:6px 4px; font-size:15px}
+
+.reveal{margin:14px 0 0; padding:12px 14px; border-radius:12px; background:var(--sel); border:1px solid var(--accent)}
+.empty{color:var(--ink2); padding:12px 14px; border:2px dashed var(--line); border-radius:12px; margin:0}
+
+.bud{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px 12px; align-items:center}
+.bud .row{display:contents}
+.step{display:flex; align-items:center; gap:10px}
+.step button{width:52px; height:52px; border:2px solid var(--line); border-radius:12px; background:var(--surface); font-size:24px; line-height:1}
+.step output{min-width:92px; text-align:center; font-weight:700; font-variant-numeric:tabular-nums}
+.meter{height:14px; border-radius:7px; background:var(--line); overflow:hidden; margin:16px 0 6px}
+.meter i{display:block; height:100%; background:var(--accent); width:0}
+.left{font-weight:700; font-variant-numeric:tabular-nums}
+
+.res{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+.card{border:1px solid var(--line); border-radius:14px; padding:14px; min-width:0}
+.card b{display:block; font-size:13px; letter-spacing:.04em; color:var(--ink2); font-weight:500; margin-bottom:4px}
+.card span{font-size:18px; font-weight:700; overflow-wrap:anywhere}
+textarea{width:100%; border:2px solid var(--line); border-radius:12px; background:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; padding:12px; line-height:1.55; resize:vertical}
+.actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:12px}
+.btn{min-height:52px; padding:10px 20px; border-radius:12px; border:2px solid var(--line); background:var(--surface); font-weight:700}
+.btn.main{background:var(--accent); border-color:var(--accent); color:var(--on-accent)}
+.nav{display:flex; justify-content:space-between; gap:12px; margin-top:8px}
+.nav .btn{flex:1; max-width:260px}
+.nav .btn:last-child{margin-left:auto}
+.status{min-height:24px; margin:10px 0 0; color:var(--ink2); font-size:15px}
+input[type=text], input[type=date]{width:100%; max-width:440px; min-height:52px; border:2px solid var(--line); border-radius:12px; background:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:16px; padding:8px 12px}
+input[type=text]:focus-visible, input[type=date]:focus-visible{outline:3px solid var(--trail); outline-offset:2px}
+.cells{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px}
+.cells .opt{min-height:64px}
+.meter{position:relative}
+.meter .mark{position:absolute; top:0; bottom:0; left:66.67%; width:3px; background:var(--ink)}
+.wk{margin-top:6px; padding-top:6px}
+.good{color:var(--ok); font-weight:700}
+.legend{margin:0 0 10px; font-size:14px; color:var(--ink2)}
+.legend b{color:var(--accent)}
+.fb{border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:8px; display:grid; gap:2px}
+.fb b{font-size:13px; color:var(--ink2); font-weight:500}
+.fb span{font-size:17px; overflow-wrap:anywhere}
+.fb.new{border-color:var(--accent); background:var(--sel)}
+
+@media (max-width:560px){
+  .rail{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .vs{grid-template-columns:1fr; gap:6px}
+  .vsmark{text-align:center}
+  .bud{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion: no-preference){
+  .opt,.star,.stop{transition:background .12s, border-color .12s}
+}
+</style>
+
+<div class="app">
+  <header>
+    <p class="eyebrow">영재키움 멘토링 · 첫 대면</p>
+    <h1>용이 탐험대</h1>
+    <p class="sub">버튼만 누르면 돼. 정답은 없고, 고르기 싫은 건 건너뛰어도 괜찮아.</p>
+  </header>
+  <div id="sync"></div>
+  <p class="legend"><b>오늘 같이</b> 1~5코스 · <b>집에서 혼자</b> 6코스 2주 미션 체크</p>
+  <nav class="rail" id="rail" aria-label="오늘의 코스"></nav>
+  <main id="main"></main>
+  <div class="nav" id="nav"></div>
+  <p class="status" id="status" role="status" aria-live="polite"></p>
+</div>
+
+<script>
+var KEY = 'jiyong-expedition-v1';
+/* 온라인 연동: GitHub Pages로 배포할 때 Firebase 웹앱 설정을 넣으면 선생님 화면과 기록이 이어져요. null이면 이 기기에만 저장돼요. */
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCYzSXR7ylrtZixG-88kKpjktz7MZy0dc0",
+  authDomain: "yongi-expedition.firebaseapp.com",
+  projectId: "yongi-expedition",
+  storageBucket: "yongi-expedition.firebasestorage.app",
+  messagingSenderId: "350004032975",
+  appId: "1:350004032975:web:7539dad5be3e2b45838eba"
+};
+var STUDENT_NAME = '용이';
+var STAGES = ['몸풀기','독서 점검','직업 탐험','학교·공부','문화체험','2주 미션','완주'];
+var BAL = [
+  ['스키','자전거'],
+  ['직접 만들어보기','완성품 사서 쓰기'],
+  ['혼자 몰입하기','친구들이랑 같이 하기'],
+  ['하늘을 나는 보드','빛을 휘게 하는 투명망토'],
+  ['볼링 스트라이크','스키 완벽 활강'],
+  ['설명서부터 읽기','일단 해보고 부딪히기']
+];
+var LIKES = ['스키','자전거','볼링','게임','영상 보기','과학 실험','만들기','독서','축구·농구','음악','영화·애니','요리·간식'];
+var STORIES = ['순례자들은 왜 돌아오지 않는가','스펙트럼','공생 가설','우리가 빛의 속도로 갈 수 없다면','감정의 물성','관내분실','나의 우주 영웅에 관하여'];
+var HARD = ['시간이 없었어','내용이 어려웠어','재미가 덜했어','게임·영상이 더 재밌어','읽는 시간대가 애매해','딱히 힘들지 않았어'];
+var PLANS = ['남은 단편을 천천히 이어 읽기','정재승의 과학 콘서트에서 끌리는 챕터 3개만','내가 읽고 싶은 책을 직접 골라서','선생님이랑 같이 소리 내어 읽기'];
+var JOBS = [
+  {k:'gear',t:'스포츠 장비 엔지니어',d:'스키, 헬멧, 볼링공을 더 잘 나가고 더 안전하게 설계해요.',s:['수학','과학','정보(코딩)']},
+  {k:'data',t:'스포츠 데이터 분석가',d:'경기 기록을 분석해서 이기는 방법을 찾아내요.',s:['수학','정보(코딩)','과학']},
+  {k:'aero',t:'항공우주 엔지니어',d:'하늘과 우주를 나는 기계를 설계해요.',s:['수학','과학','영어']},
+  {k:'robot',t:'로봇 공학자',d:'스스로 움직이고 판단하는 로봇을 만들어요.',s:['수학','과학','정보(코딩)']},
+  {k:'game',t:'게임 개발자',d:'게임의 규칙과 세계를 코드로 만들어요.',s:['정보(코딩)','수학','미술·디자인']},
+  {k:'optic',t:'광학·신소재 연구자',d:'빛을 휘게 하는 재료를 연구해요. 투명망토 연구도 이 분야와 닿아 있어요.',s:['과학','수학','영어']},
+  {k:'patent',t:'변리사',d:'발명을 특허로 지켜주는 일이에요. 이공계 지식을 많이 써요.',s:['과학','국어','영어']},
+  {k:'museum',t:'과학관 전시 기획자',d:'과학을 체험으로 바꿔서 보여주는 전시를 만들어요.',s:['과학','국어','미술·디자인']}
+];
+var JOBREACT = [['love','끌려요'],['look','궁금해'],['skip','패스']];
+var SUBJECTS = ['수학','과학','영어','정보(코딩)','국어','미술·디자인','체육'];
+var FUN = ['친구들','체육 시간','수학','과학','점심시간','동아리·특별활동','쉬는 시간','잘 모르겠어'];
+var GOOD = ['국어','수학','영어','과학','사회','체육','음악·미술','정보','잘 모르겠어'];
+var STUCK = ['수업 중 집중하기','숙제 챙기기','시험 준비','어려운 개념','시작 자체가 귀찮아','딱히 없어'];
+var HELP = ['20분만 짧게','퀴즈·게임처럼','같이 하기','앱에 체크하기','끝나고 보상','음악 들으며'];
+var PROMISE = ['수학 시간에 궁금한 것 1개 가져오기','과학 시간에 궁금한 것 1개 가져오기','틀린 문제 1개 다시 풀기','하루 10분 복습하기','오늘은 안 정하고 다음에 정하기'];
+var KIND = ['과학관 투어','공연 관람','아직 모르겠어'];
+var PLACE = ['원주 쪽','서울 쪽','상관없어'];
+var TOPICS = ['직접 만져보는 체험','로봇·드론','우주·항공','빛과 광학','스포츠 과학','공연·무대','맛집 탐방'];
+var BUDGET_ITEMS = [['ticket','입장·체험'],['move','교통'],['food','식사'],['snack','간식·기념품']];
+var BUDGET_MAX = 100000, BUDGET_STEP = 5000;
+var MSUBJ = ['수학','영어','과학','국어','선생님이랑 같이 정할래'];
+var MCHAL = ['틀린 문제 3개 다시 풀기','개념 1개를 말로 설명하기','과학 영상 보고 한 줄 정리','1학년 수학 개념 점검 문제 풀기'];
+var MREWARD = ['다음 만남 활동 내가 고르기','팔 나으면 선생님이랑 볼링 한 판','문화체험 코스 먼저 고르기','보상은 다음에 정할래'];
+var FEEL = ['괜찮았어','보통이었어','좀 힘들었어'];
+var MISSION_GOAL = 6, MISSION_CELLS = 9;
+function todayStr(){ var d = new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+function addDays(str, n){ var p = str.split('-'); var d = new Date(+p[0], +p[1]-1, +p[2]); d.setDate(d.getDate()+n); return d; }
+function fmtD(d){ return (d.getMonth()+1)+'월 '+d.getDate()+'일'; }
+
+var SINGLE = {fav:1,plan:1,jobPick:1,fun:1,good:1,stuck:1,promise:1,kind:1,place:1,mSubject:1,mChallenge:1,mReward:1,feel1:1,feel2:1};
+function blank(){
+  return {stage:0, bal:{}, likes:[], read:[], fav:'', star:0, hard:[], plan:'',
+    jobs:{}, jobPick:'', jobSubj:[], fun:'', good:'', stuck:'', help:[], promise:'',
+    kind:'', place:'', topics:[], budget:{ticket:0,move:0,food:0,snack:0}, memo:'',
+    mSubject:'', mChallenge:'', mReward:'', mStart:todayStr(), mc:[false,false,false,false,false,false,false,false,false],
+    feel1:'', feel2:'', note1:'', note2:''};
+}
+var D = blank();
+var ui = {confirmReset:false};
+
+function load(){
+  try{
+    var raw = localStorage.getItem(KEY);
+    if(raw){ var s = JSON.parse(raw); for(var k in D){ if(s[k] !== undefined) D[k] = s[k]; } }
+  }catch(e){}
+}
+var saveTimer = null;
+function save(){
+  lsSet(KEY+'-t', String(Date.now()));
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function(){ try{ localStorage.setItem(KEY, JSON.stringify(D)); }catch(e){} }, 200);
+  schedulePush();
+}
+function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function has(a, v){ return a.indexOf(v) > -1; }
+function toggle(a, v){ var i = a.indexOf(v); if(i > -1) a.splice(i,1); else a.push(v); }
+function won(n){ return n.toLocaleString('ko-KR') + '원'; }
+function B(g, v, label, on, i, cls){
+  return '<button type="button" class="opt'+(cls?' '+cls:'')+(on?' on':'')+'" data-g="'+g+'" data-v="'+esc(v)+'"'+(i!==undefined?' data-i="'+i+'"':'')+' aria-pressed="'+(on?'true':'false')+'">'+esc(label)+'</button>';
+}
+function chips(g, list, isOn){ return '<div class="chips">'+list.map(function(x){ return B(g, x, x, isOn(x)); }).join('')+'</div>'; }
+function setStatus(t){ var el = document.getElementById('status'); if(el) el.textContent = t || ''; }
+function budgetTotal(){ var t = 0; for(var k in D.budget) t += D.budget[k]; return t; }
+function jobByKey(k){ for(var i=0;i<JOBS.length;i++) if(JOBS[i].k===k) return JOBS[i]; return null; }
+
+function stageDone(i){
+  if(i===0) return Object.keys(D.bal).length>0 || D.likes.length>0;
+  if(i===1) return D.read.length>0 || !!D.fav || D.star>0 || D.hard.length>0 || !!D.plan;
+  if(i===2) return Object.keys(D.jobs).length>0 || !!D.jobPick || D.jobSubj.length>0;
+  if(i===3) return !!(D.fun||D.good||D.stuck||D.promise) || D.help.length>0;
+  if(i===4) return !!(D.kind||D.place) || D.topics.length>0;
+  if(i===5) return !!(D.mSubject||D.mChallenge||D.mReward) || missionDone()>0;
+  return false;
+}
+
+function s0(){
+  return '<section class="sec"><h2>몸풀기 밸런스게임</h2><p class="hint">끌리는 쪽을 눌러봐. 고민되면 느낌대로!</p>'+
+    BAL.map(function(p,i){
+      return '<div class="vs">'+B('bal','0',p[0],D.bal[i]==='0',i)+'<span class="vsmark" aria-hidden="true">VS</span>'+B('bal','1',p[1],D.bal[i]==='1',i)+'</div>';
+    }).join('')+'</section>'+
+    '<section class="sec"><h2>요즘 끌리는 것</h2><p class="hint">마음에 드는 건 전부 눌러도 돼.</p>'+
+    chips('like', LIKES, function(x){ return has(D.likes,x); })+'</section>';
+}
+function s1(){
+  var favList = D.read.filter(function(x){ return x !== '__none'; });
+  var favHtml = favList.length
+    ? chips('fav', favList, function(x){ return D.fav===x; })
+    : '<p class="empty">읽은 단편이 있으면 위에서 먼저 골라줘. 없으면 건너뛰어도 돼.</p>';
+  return '<section class="sec"><h2>김초엽 단편집, 어디까지 갔어?</h2><p class="hint">못 읽었어도 괜찮아. 있는 그대로 눌러줘.</p>'+
+    '<p class="q">읽은 단편을 모두 골라줘</p>'+
+    '<div class="chips">'+STORIES.map(function(x){ return B('read', x, x, has(D.read,x)); }).join('')+B('read','__none','아직 못 읽었어',has(D.read,'__none'))+'</div>'+
+    '<p class="q">제일 기억에 남는 단편은?</p>'+favHtml+
+    '<p class="q">그 단편 별점은?</p><div class="stars" role="group" aria-label="별점">'+
+    [1,2,3,4,5].map(function(n){ return '<button type="button" class="star'+(D.star>=n?' on':'')+'" data-g="star" data-v="'+n+'" aria-label="별 '+n+'개" aria-pressed="'+(D.star>=n?'true':'false')+'">★</button>'; }).join('')+'</div>'+
+    '<p class="q">읽기 힘들었던 점이 있다면?</p>'+chips('hard', HARD, function(x){ return has(D.hard,x); })+
+    '<p class="q">앞으로 독서는 어떻게 하면 좋을 것 같아?</p>'+chips('plan', PLANS, function(x){ return D.plan===x; })+
+    '</section>';
+}
+function s2(){
+  var cards = JOBS.map(function(j){
+    return '<article class="job"><h3>'+esc(j.t)+'</h3><p>'+esc(j.d)+'</p><div class="three">'+
+      JOBREACT.map(function(r){ return B('job', r[0], r[1], D.jobs[j.k]===r[0], j.k); }).join('')+'</div></article>';
+  }).join('');
+  var picks = JOBS.filter(function(j){ return D.jobs[j.k]==='love' || D.jobs[j.k]==='look'; });
+  var pickHtml = picks.length
+    ? '<div class="chips">'+picks.map(function(j){ return B('jobPick', j.k, j.t, D.jobPick===j.k); }).join('')+'</div>'
+    : '<p class="empty">위에서 "끌려요"나 "궁금해"를 하나 이상 누르면 여기서 고를 수 있어.</p>';
+  var subj = '', rev = '';
+  var job = jobByKey(D.jobPick);
+  if(job){
+    subj = '<p class="q">이 일을 하려면 어떤 과목이 필요할 것 같아? (여러 개 가능)</p>'+chips('subj', SUBJECTS, function(x){ return has(D.jobSubj,x); });
+    if(D.jobSubj.length){
+      var hit = D.jobSubj.filter(function(x){ return has(job.s,x); });
+      rev = '<p class="reveal">이 일에 자주 쓰이는 과목은 <b>'+job.s.map(esc).join(', ')+'</b>이야. 네가 고른 것 중 '+hit.length+'개가 겹쳤어.</p>';
+    }
+  }
+  return '<section class="sec"><h2>직업 카드</h2><p class="hint">볼링, 스키, 자전거, 발명과 이어진 일들이야. 카드마다 느낌만 눌러줘.</p><div class="jobs">'+cards+'</div></section>'+
+    '<section class="sec"><h2>하나만 파고들기</h2><p class="q" style="margin-top:6px">제일 마음에 걸리는 직업은?</p>'+pickHtml+subj+rev+'</section>';
+}
+function s3(){
+  return '<section class="sec"><h2>학교와 공부</h2><p class="hint">평가하는 거 아니야. 지금 상태를 알고 싶을 뿐이야.</p>'+
+    '<p class="q">학교에서 제일 재밌는 건?</p>'+chips('fun', FUN, function(x){ return D.fun===x; })+
+    '<p class="q">그나마 편한 과목은?</p>'+chips('good', GOOD, function(x){ return D.good===x; })+
+    '<p class="q">요즘 제일 막히는 건?</p>'+chips('stuck', STUCK, function(x){ return D.stuck===x; })+
+    '<p class="q">이런 방식이면 공부 시작하기 쉬울 것 같아 (여러 개 가능)</p>'+chips('help', HELP, function(x){ return has(D.help,x); })+
+    '<p class="q">이번 달 작은 약속 하나만 고른다면?</p>'+chips('promise', PROMISE, function(x){ return D.promise===x; })+
+    '</section>';
+}
+function s4(){
+  var rows = BUDGET_ITEMS.map(function(it){
+    var v = D.budget[it[0]];
+    return '<div class="row"><span>'+it[1]+'</span><div class="step">'+
+      '<button type="button" data-g="bud" data-v="-1" data-i="'+it[0]+'" aria-label="'+it[1]+' 5천원 줄이기">−</button>'+
+      '<output>'+won(v)+'</output>'+
+      '<button type="button" data-g="bud" data-v="1" data-i="'+it[0]+'" aria-label="'+it[1]+' 5천원 늘리기">+</button></div></div>';
+  }).join('');
+  return '<section class="sec"><h2>문화체험 고르기</h2><p class="hint">같이 갈 곳을 정하는 거야. 용이가 고른 곳으로 가볼 거야.</p>'+
+    '<p class="q">어떤 체험이 끌려?</p>'+chips('kind', KIND, function(x){ return D.kind===x; })+
+    '<p class="q">과학관이라면 어느 쪽이 좋아?</p>'+chips('place', PLACE, function(x){ return D.place===x; })+
+    '<p class="q">끌리는 것을 모두 골라줘</p>'+chips('topic', TOPICS, function(x){ return has(D.topics,x); })+
+    '</section>';
+}
+function labelOf(g){ return g; }
+function summaryLines(){
+  var out = [];
+  var bal = [];
+  BAL.forEach(function(p,i){ if(D.bal[i] !== undefined) bal.push(p[+D.bal[i]]); });
+  out.push('■ 밸런스게임: ' + (bal.length ? bal.join(' / ') : '응답 없음'));
+  out.push('■ 끌리는 것: ' + (D.likes.length ? D.likes.join(', ') : '응답 없음'));
+  var read = D.read.filter(function(x){ return x!=='__none'; });
+  out.push('■ 독서: ' + (has(D.read,'__none') ? '아직 못 읽음' : (read.length ? read.length+'편 읽음' : '응답 없음')) +
+    (D.fav ? ' / 기억에 남는 단편 「'+D.fav+'」' : '') + (D.star ? ' / 별점 '+D.star : '') +
+    (D.hard.length ? ' / 힘들었던 점: '+D.hard.join(', ') : '') + (D.plan ? ' / 앞으로: '+D.plan : ''));
+  var love = [], look = [], skip = [];
+  JOBS.forEach(function(j){ var r = D.jobs[j.k]; if(r==='love') love.push(j.t); else if(r==='look') look.push(j.t); else if(r==='skip') skip.push(j.t); });
+  out.push('■ 직업 카드: 끌려요 ['+(love.join(', ')||'-')+'] / 궁금해 ['+(look.join(', ')||'-')+'] / 패스 ['+(skip.join(', ')||'-')+']');
+  var job = jobByKey(D.jobPick);
+  if(job) out.push('■ 파고든 직업: '+job.t+' / 필요하다고 본 과목: '+(D.jobSubj.join(', ')||'-')+' / 자주 쓰이는 과목: '+job.s.join(', '));
+  out.push('■ 학교·공부: 재밌는 것 '+(D.fun||'-')+' / 편한 과목 '+(D.good||'-')+' / 막히는 것 '+(D.stuck||'-')+' / 시작이 쉬운 방식 '+(D.help.join(', ')||'-'));
+  out.push('■ 이번 달 약속: ' + (D.promise || '-'));
+  out.push('■ 문화체험: '+(D.kind||'-')+' / 장소 '+(D.place||'-')+' / 끌리는 것 '+(D.topics.join(', ')||'-'));
+  out.push('■ 2주 미션: 과목 '+(D.mSubject||'-')+' / 선택 도전 '+(D.mChallenge||'-')+' / 보상 '+(D.mReward||'-')+' / 시작 '+(D.mStart||'-')+' / 달성 '+missionDone()+'/'+MISSION_CELLS+'칸'+
+    ' / 컨디션 1주 '+(D.feel1||'-')+', 2주 '+(D.feel2||'-')+(D.note1 ? ' / 1주 메모: '+D.note1 : '')+(D.note2 ? ' / 2주 메모: '+D.note2 : ''));
+  return out;
+}
+function summaryText(){
+  var t = '[용이 탐험대 결과] ' + new Date().toLocaleDateString('ko-KR') + '\n' + summaryLines().join('\n');
+  if(D.memo.trim()) t += '\n■ 선생님 메모: ' + D.memo.trim();
+  return t;
+}
+function missionDone(){ var n = 0; for(var i=0;i<D.mc.length;i++){ if(D.mc[i]) n++; } return n; }
+function missionLabel(){ return (D.mReward || '보상 미정') + ' · ' + missionDone() + '/' + MISSION_CELLS + '칸'; }
+function cellRow(from, to, label){
+  var h = '';
+  for(var i=from;i<to;i++){ h += B('cell', String(i), label + (to-from>1 ? ' '+(i-from+1) : ''), !!D.mc[i]); }
+  return '<div class="cells">'+h+'</div>';
+}
+function weekBlock(n, from){
+  var fk = 'feel'+n, nk = 'note'+n;
+  return '<div class="wk"><p class="q">'+n+'주차 루틴 (3칸)</p>'+cellRow(from, from+3, '루틴')+
+    '<p class="q">이번 주 어땠어?</p>'+chips(fk, FEEL, function(x){ return D[fk]===x; })+
+    '<p class="q"><label for="'+nk+'">이번 주 한 일 한 줄 (안 써도 돼)</label></p><input type="text" id="'+nk+'" value="'+esc(D[nk])+'" maxlength="80" autocomplete="off"></div>';
+}
+function s5(){
+  var done = missionDone();
+  var dead = D.mStart ? fmtD(addDays(D.mStart, 14)) : '';
+  var msg = done >= MISSION_GOAL
+    ? '<span class="good">미션 성공!</span> 보상: '+esc(D.mReward || '아직 안 골랐어')
+    : '지금 '+done+'칸이야. '+(MISSION_GOAL-done)+'칸만 더 하면 성공이야.';
+  return '<section class="sec"><h2>2주 미션 정하기 <small style="font-size:13px;color:var(--ink2)">같이 정하고, 체크는 집에서 혼자</small></h2><p class="hint">선생님이 정해 주는 게 아니라 용이가 고르는 미션이야. 못 해도 벌은 없어.</p>'+
+    '<p class="q">루틴으로 할 과목은? (주 3일, 15~20분)</p>'+chips('mSubject', MSUBJ, function(x){ return D.mSubject===x; })+
+    '<p class="q">선택 도전은 뭘로 할까? (1칸)</p>'+chips('mChallenge', MCHAL, function(x){ return D.mChallenge===x; })+
+    '<p class="q">미션을 해내면 받을 보상은?</p>'+chips('mReward', MREWARD, function(x){ return D.mReward===x; })+
+    '<p class="q"><label for="mstart">시작일</label></p><input type="date" id="mstart" value="'+esc(D.mStart)+'">'+
+    (dead ? '<p class="hint" style="margin:8px 0 0">마감은 '+dead+'(2주 뒤)이야.</p>' : '')+
+    '</section>'+
+    '<section class="sec"><h2>체크판</h2><p class="hint">했으면 눌러. 9칸 중 6칸 이상이면 미션 성공이야.</p>'+
+    weekBlock(1, 0)+weekBlock(2, 3)+
+    '<div class="wk"><p class="q">질문 미션 (2칸): 수업에서 궁금한 것 가져오기</p>'+cellRow(6, 8, '질문')+
+    '<p class="q">선택 도전 (1칸)'+(D.mChallenge ? ': '+esc(D.mChallenge) : '')+'</p>'+cellRow(8, 9, '도전 완료')+'</div>'+
+    '<div class="meter" aria-hidden="true"><i style="width:'+(done/MISSION_CELLS*100)+'%"></i><span class="mark"></span></div>'+
+    '<p class="left">'+done+'/'+MISSION_CELLS+'칸 · '+msg+'</p></section>';
+}
+function s6(){
+  var cards = [
+    ['이번 달 약속', D.promise || '아직 안 정했어'],
+    ['가고 싶은 문화체험', (D.kind||'미정') + (D.place ? ' · '+D.place : '')],
+    ['제일 마음에 걸린 직업', (jobByKey(D.jobPick)||{t:'아직 없어'}).t],
+    ['앞으로 독서 방식', D.plan || '아직 안 정했어'],
+    ['2주 미션', missionLabel()]
+  ];
+  var reset = ui.confirmReset
+    ? '<button type="button" class="btn main" data-g="resetyes">지금까지 답을 모두 지우기</button><button type="button" class="btn" data-g="resetno">취소</button>'
+    : '<button type="button" class="btn" data-g="reset">처음부터 다시</button>';
+  return '<section class="sec"><h2>코스 완주!</h2><p class="hint">오늘 정한 것들이야. 다음 만남 때 여기서부터 이어가자.</p><div class="res">'+
+    cards.map(function(c){ return '<div class="card"><b>'+c[0]+'</b><span>'+esc(c[1])+'</span></div>'; }).join('')+'</div></section>'+
+    '<section class="sec"><h2>선생님 노트</h2><p class="hint">답한 내용이 자동으로 정리돼. 메모를 덧붙이고 복사해서 어머님께 전할 때 써도 돼.</p>'+
+    '<label for="memo" class="q" style="display:block;margin-top:0">메모</label>'+
+    '<textarea id="memo" rows="3" placeholder="용이가 한 말, 관찰한 점을 그대로 적어두기">'+esc(D.memo)+'</textarea>'+
+    '<label for="sumtext" class="q" style="display:block">정리 글</label>'+
+    '<textarea id="sumtext" rows="13" readonly>'+esc(summaryText())+'</textarea>'+
+    '<div class="actions"><button type="button" class="btn main" data-g="copy">정리 글 복사</button>'+reset+'</div></section>';
+}
+
+function render(){
+  document.getElementById('rail').innerHTML = STAGES.map(function(n,i){
+    return '<button type="button" class="stop'+(i===D.stage?' cur':'')+(stageDone(i)?' done':'')+'" data-g="go" data-v="'+i+'"'+(i===D.stage?' aria-current="step"':'')+'><span class="n">'+(i+1)+'</span><span>'+n+'</span></button>';
+  }).join('');
+  var fn = [s0,s1,s2,s3,s4,s5,s6][D.stage];
+  document.getElementById('main').innerHTML = fn();
+  var prev = D.stage>0 ? '<button type="button" class="btn" data-g="go" data-v="'+(D.stage-1)+'">이전 코스</button>' : '<span></span>';
+  var next = D.stage<6 ? '<button type="button" class="btn main" data-g="go" data-v="'+(D.stage+1)+'">'+(D.stage===5?'완주하기':'다음 코스')+'</button>' : '';
+  document.getElementById('nav').innerHTML = prev + next;
+}
+
+function act(g, v, i){
+  if(g==='go'){ D.stage = +v; ui.confirmReset = false; save(); render(); window.scrollTo(0,0); return; }
+  if(g==='setcode'){ var inp = document.getElementById('codein'); var c = ((inp && inp.value) || '').trim(); if(c){ setCode(c); } return; }
+  if(g==='fbseen'){ markSeen(); return; }
+  if(g==='bal'){ D.bal[i] = (D.bal[i]===v ? undefined : v); if(D.bal[i]===undefined) delete D.bal[i]; }
+  else if(g==='like'){ toggle(D.likes, v); }
+  else if(g==='read'){
+    if(v==='__none'){ D.read = has(D.read,'__none') ? [] : ['__none']; D.fav = ''; }
+    else{ D.read = D.read.filter(function(x){ return x!=='__none'; }); toggle(D.read, v); if(!has(D.read, D.fav)) D.fav = ''; }
+  }
+  else if(g==='star'){ D.star = (D.star===+v ? 0 : +v); }
+  else if(g==='hard'){ toggle(D.hard, v); }
+  else if(g==='job'){ if(D.jobs[i]===v) delete D.jobs[i]; else D.jobs[i] = v;
+    if(D.jobPick && D.jobs[D.jobPick]!=='love' && D.jobs[D.jobPick]!=='look'){ D.jobPick = ''; D.jobSubj = []; } }
+  else if(g==='jobPick'){ var was = D.jobPick; D.jobPick = (was===v ? '' : v); if(D.jobPick!==was) D.jobSubj = []; }
+  else if(g==='subj'){ toggle(D.jobSubj, v); }
+  else if(g==='help'){ toggle(D.help, v); }
+  else if(g==='topic'){ toggle(D.topics, v); }
+  else if(g==='bud'){
+    var cur = D.budget[i], nxt = cur + (+v)*BUDGET_STEP;
+    if(nxt < 0) return;
+    if(budgetTotal() + (+v)*BUDGET_STEP > BUDGET_MAX){ setStatus('10만원을 다 썼어. 다른 항목을 줄이면 더 쓸 수 있어.'); return; }
+    D.budget[i] = nxt; setStatus('');
+  }
+  else if(g==='cell'){ D.mc[+v] = !D.mc[+v]; }
+  else if(SINGLE[g]){ D[g] = (D[g]===v ? '' : v); }
+  else if(g==='copy'){
+    var ta = document.getElementById('sumtext'); ta.value = summaryText();
+    var p = null;
+    try{ p = navigator.clipboard.writeText(ta.value); }catch(e){ p = null; }
+    if(p && p.then){ p.then(function(){ setStatus('복사했어요.'); }, function(){ ta.focus(); ta.select(); setStatus('자동 복사가 안 돼요. 선택된 글자를 직접 복사해 주세요.'); }); }
+    else{ ta.focus(); ta.select(); setStatus('자동 복사가 안 돼요. 선택된 글자를 직접 복사해 주세요.'); }
+    return;
+  }
+  else if(g==='reset'){ ui.confirmReset = true; render(); return; }
+  else if(g==='resetno'){ ui.confirmReset = false; render(); return; }
+  else if(g==='resetyes'){
+    D = blank();
+    ui.confirmReset = false; save(); render(); window.scrollTo(0,0); setStatus('처음 상태로 돌렸어요.'); return;
+  }
+  save();
+  var main = document.getElementById('main');
+  var y = window.scrollY;
+  render();
+  window.scrollTo(0, y);
+  var sel = '[data-g="'+g+'"][data-v="'+v+'"]' + (i!==undefined ? '[data-i="'+i+'"]' : '');
+  var el = document.querySelector(sel);
+  if(el){ try{ el.focus({preventScroll:true}); }catch(e){} }
+}
+
+document.addEventListener('click', function(e){
+  var b = e.target.closest('[data-g]');
+  if(!b) return;
+  act(b.getAttribute('data-g'), b.getAttribute('data-v'), b.getAttribute('data-i') === null ? undefined : b.getAttribute('data-i'));
+});
+document.addEventListener('change', function(e){
+  if(e.target && e.target.id === 'mstart'){ D.mStart = e.target.value; save(); render(); }
+});
+document.addEventListener('input', function(e){
+  var id = e.target && e.target.id;
+  if(id === 'note1' || id === 'note2'){ D[id] = e.target.value; save(); return; }
+  if(e.target && e.target.id === 'memo'){
+    D.memo = e.target.value; save();
+    var st = document.getElementById('sumtext'); if(st) st.value = summaryText();
+  }
+});
+
+/* ---- 온라인 연동 (선생님 확인 화면과 기록 공유) ---- */
+var SY = {adapter:null, code:'', connected:false, msg:'', fb:null, unwatch:null, pushTimer:null};
+function lsGet(k){ try{ return localStorage.getItem(k) || ''; }catch(e){ return ''; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+function localT(){ return +lsGet(KEY+'-t') || 0; }
+function seenT(){ return +lsGet(KEY+'-seen') || 0; }
+function makeFirebaseAdapter(cfg){
+  var base = 'https://www.gstatic.com/firebasejs/10.12.2/';
+  return Promise.all([import(base+'firebase-app.js'), import(base+'firebase-firestore.js')]).then(function(m){
+    var fs = m[1];
+    var db = fs.getFirestore(m[0].initializeApp(cfg));
+    return {
+      pull: function(code){ return fs.getDoc(fs.doc(db,'students',code)).then(function(s){ return s.exists() ? s.data() : null; }); },
+      push: function(code, p){ return fs.setDoc(fs.doc(db,'students',code), p); },
+      watchFeedback: function(code, cb){
+        return fs.onSnapshot(fs.doc(db,'feedback',code), function(s){ cb(s.exists() ? (s.data().items || []) : []); }, function(){ cb(null); });
+      }
+    };
+  });
+}
+function schedulePush(){ if(!SY.connected) return; clearTimeout(SY.pushTimer); SY.pushTimer = setTimeout(pushNow, 1500); }
+function pushNow(){
+  if(!SY.connected) return;
+  SY.msg = '저장 중…'; renderSync();
+  SY.adapter.push(SY.code, {name:STUDENT_NAME, t:localT(), state:JSON.stringify(D), summary:summaryText()}).then(function(){
+    SY.msg = '선생님과 연결됨 · 저장했어'; renderSync();
+  }).catch(function(){
+    SY.msg = '저장하지 못했어. 인터넷을 확인해 줘. 기록은 이 컴퓨터에 남아 있어.'; renderSync();
+  });
+}
+function connect(){
+  SY.msg = '연결 중…'; renderSync();
+  SY.adapter.pull(SY.code).then(function(r){
+    var rt = r ? (+r.t || 0) : 0;
+    if(r && r.state && rt > localT()){
+      try{
+        var s = JSON.parse(r.state);
+        for(var k in D){ if(s[k] !== undefined) D[k] = s[k]; }
+        lsSet(KEY, JSON.stringify(D)); lsSet(KEY+'-t', String(rt)); render();
+      }catch(e){}
+    }
+    SY.connected = true; SY.msg = '선생님과 연결됨';
+    if(!r || rt < localT()) pushNow(); else renderSync();
+    if(SY.unwatch){ SY.unwatch(); }
+    SY.unwatch = SY.adapter.watchFeedback(SY.code, function(items){ SY.fb = items; renderSync(); });
+  }).catch(function(){
+    SY.msg = '연결하지 못했어. 기록은 이 컴퓨터에 저장돼.'; renderSync();
+  });
+}
+function setCode(c){ lsSet(KEY+'-code', c); SY.code = c; connect(); }
+function markSeen(){
+  var mx = 0; (SY.fb || []).forEach(function(f){ if(f.t > mx) mx = f.t; });
+  lsSet(KEY+'-seen', String(mx)); renderSync();
+}
+function renderSync(){
+  var el = document.getElementById('sync'); if(!el) return;
+  if(!SY.adapter){ el.innerHTML = ''; return; }
+  var h = '';
+  if(!SY.code){
+    h = '<section class="sec"><h2>접속 코드</h2><p class="hint">선생님이 알려 준 코드를 한 번만 넣어 줘.</p><div class="actions" style="margin-top:0"><input type="text" id="codein" autocomplete="off" aria-label="접속 코드"><button type="button" class="btn main" data-g="setcode">연결하기</button></div></section>';
+  }else{
+    h = '<p class="status" style="margin:0 0 12px">'+esc(SY.msg)+'</p>';
+    var items = (SY.fb || []).slice().sort(function(a,b){ return b.t - a.t; }).slice(0,3);
+    if(items.length){
+      var seen = seenT();
+      h += '<section class="sec"><h2>선생님 한마디</h2>'+items.map(function(f){
+        var d = new Date(f.t), fresh = f.t > seen;
+        return '<div class="fb'+(fresh?' new':'')+'"><b>'+esc(f.tag || '메시지')+' · '+(d.getMonth()+1)+'/'+d.getDate()+(fresh?' · 새 글':'')+'</b><span>'+esc(f.text)+'</span></div>';
+      }).join('')+'<div class="actions" style="margin-top:6px"><button type="button" class="btn" data-g="fbseen">확인했어</button></div></section>';
+    }
+  }
+  el.innerHTML = h;
+}
+function bootSync(){
+  var p = null;
+  try{ p = new URLSearchParams(location.search).get('c'); }catch(e){}
+  if(p){ lsSet(KEY+'-code', p); try{ history.replaceState(null, '', location.pathname); }catch(e){} }
+  var ad = window.JX_ADAPTER ? Promise.resolve(window.JX_ADAPTER)
+    : (FIREBASE_CONFIG ? makeFirebaseAdapter(FIREBASE_CONFIG).catch(function(){ return null; }) : Promise.resolve(null));
+  ad.then(function(a){
+    if(!a) return;
+    SY.adapter = a; SY.code = lsGet(KEY+'-code'); renderSync();
+    if(SY.code) connect();
+  });
+}
+
+load();
+render();
+bootSync();
+</script>

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>탐험대 선생님 화면</title>
+<style>
+:root{--bg:#EDF3F8;--surface:#fff;--ink:#0E2233;--ink2:#46607A;--line:#C9D8E5;--accent:#D9480F;--on:#fff;--sel:#FFE8DB;--ok:#1B7F4B}
+@media (prefers-color-scheme:dark){:root{--bg:#0B1622;--surface:#13222F;--ink:#E7EFF6;--ink2:#9CB3C6;--line:#25384A;--accent:#FF8F5A;--on:#1B0B02;--sel:#3A2314;--ok:#5ED394}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;padding:16px}
+main{max-width:760px;margin:0 auto;display:grid;gap:14px}
+h1{font-size:22px;margin:4px 0}h2{font-size:17px;margin:0 0 8px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+input,textarea,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 14px}
+button.main{background:var(--accent);color:var(--on);border-color:var(--accent);font-weight:700}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.row>*{min-width:0}
+.stu{display:flex;justify-content:space-between;gap:8px;width:100%;text-align:left}
+.stu small{color:var(--ink2)}
+.sum{white-space:pre-wrap;background:var(--bg);border-radius:10px;padding:10px;font-size:15px;overflow-wrap:anywhere}
+.cells{display:grid;grid-template-columns:repeat(9,1fr);gap:4px}
+.cells i{display:block;height:30px;border-radius:6px;border:1px solid var(--line);background:var(--bg)}
+.cells i.on{background:var(--ok);border-color:var(--ok)}
+.muted{color:var(--ink2);font-size:14px}.err{color:#C0392B}
+.fb{border-top:1px solid var(--line);padding:6px 0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<h1>탐험대 선생님 화면</h1>
+<section class="card" id="login">
+  <h2>로그인</h2>
+  <div class="row"><input id="em" type="email" placeholder="이메일" autocomplete="username"><input id="pw" type="password" placeholder="비밀번호" autocomplete="current-password"><button class="main" id="go">들어가기</button></div>
+  <p class="muted err" id="lerr"></p>
+</section>
+<section id="app" hidden>
+  <div class="card"><h2>학생 목록</h2><div id="list" class="row" style="display:grid;gap:8px"></div></div>
+  <div class="card" id="detail" hidden>
+    <h2 id="dname"></h2><p class="muted" id="dtime"></p>
+    <p class="muted">2주 미션 체크판</p><div class="cells" id="dcells"></div><p class="muted" id="dmeta"></p>
+    <p class="muted">최근 기록 요약</p><div class="sum" id="dsum"></div>
+    <h2 style="margin-top:14px">피드백 보내기</h2>
+    <div class="row">
+      <select id="tag" style="max-width:150px"><option>칭찬</option><option>응원</option><option>질문</option><option>다음 약속</option></select>
+      <button data-t="노력한 과정이 보여서 좋았어. 다음 칸도 편한 속도로 해보자.">칭찬 예시</button>
+      <button data-t="이번 주는 좀 힘들었구나. 다음 만남에서 같이 방법을 찾아보자.">응원 예시</button>
+    </div>
+    <textarea id="ftext" rows="3" placeholder="학생 화면에 '선생님 한마디'로 보여요" style="margin-top:8px"></textarea>
+    <div class="row" style="margin-top:8px"><button class="main" id="send">보내기</button><span class="muted" id="smsg"></span></div>
+    <div id="past" style="margin-top:10px"></div>
+  </div>
+</section>
+</main>
+<script>
+/* Firebase 웹앱 설정을 학생 앱(index.html)과 같은 값으로 넣어 주세요. */
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCYzSXR7ylrtZixG-88kKpjktz7MZy0dc0",
+  authDomain: "yongi-expedition.firebaseapp.com",
+  projectId: "yongi-expedition",
+  storageBucket: "yongi-expedition.firebasestorage.app",
+  messagingSenderId: "350004032975",
+  appId: "1:350004032975:web:7539dad5be3e2b45838eba"
+};
+var FS = null, AU = null, db = null, cur = null;
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function fmt(t){ var d=new Date(+t||0); return (d.getMonth()+1)+'/'+d.getDate()+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
+function boot(){
+  if(window.JT_ADAPTER){ AD = window.JT_ADAPTER; return Promise.resolve(); }
+  if(!FIREBASE_CONFIG){ $('lerr').textContent='FIREBASE_CONFIG가 비어 있어요. 설정 안내를 먼저 따라 주세요.'; return Promise.reject(); }
+  var b='https://www.gstatic.com/firebasejs/10.12.2/';
+  return Promise.all([import(b+'firebase-app.js'),import(b+'firebase-auth.js'),import(b+'firebase-firestore.js')]).then(function(m){
+    var app=m[0].initializeApp(FIREBASE_CONFIG), a=m[1], f=m[2], auth=a.getAuth(app); db=f.getFirestore(app);
+    AD={
+      login:function(e,p){ return a.signInWithEmailAndPassword(auth,e,p); },
+      list:function(){ return f.getDocs(f.collection(db,'students')).then(function(q){ return q.docs.map(function(d){ var x=d.data(); x.code=d.id; return x; }); }); },
+      feedback:function(code){ return f.getDoc(f.doc(db,'feedback',code)).then(function(s){ return s.exists()?(s.data().items||[]):[]; }); },
+      send:function(code,items){ return f.setDoc(f.doc(db,'feedback',code),{items:items}); }
+    };
+  });
+}
+var AD=null;
+function loadList(){
+  AD.list().then(function(arr){
+    arr.sort(function(a,b){return (+b.t||0)-(+a.t||0);});
+    $('list').innerHTML = arr.length ? arr.map(function(s,i){ return '<button class="stu" data-i="'+i+'"><b>'+esc(s.name||'학생')+'</b><small>'+esc(s.code)+' · 마지막 기록 '+fmt(s.t)+'</small></button>'; }).join('') : '<p class="muted">아직 기록이 없어요. 학생이 코드를 넣고 기록을 시작하면 보여요.</p>';
+    window.__arr = arr;
+  }).catch(function(){ $('list').innerHTML='<p class="err">불러오지 못했어요. 규칙 설정을 확인해 주세요.</p>'; });
+}
+function show(s){
+  cur = s; var st={}; try{ st=JSON.parse(s.state||'{}'); }catch(e){}
+  $('detail').hidden=false; $('dname').textContent=(s.name||'학생')+' ('+s.code+')'; $('dtime').textContent='마지막 저장 '+fmt(s.t);
+  var mc=st.mc||[]; $('dcells').innerHTML=Array.apply(null,Array(9)).map(function(_,i){return '<i class="'+(mc[i]?'on':'')+'"></i>';}).join('');
+  var n=mc.filter(Boolean).length;
+  $('dmeta').textContent='달성 '+n+'/9 · 과목 '+(st.mSubject||'-')+' · 도전 '+(st.mChallenge||'-')+' · 보상 '+(st.mReward||'-')+' · 시작 '+(st.mStart||'-')+' · 컨디션 '+(st.feel1||'-')+' / '+(st.feel2||'-');
+  $('dsum').textContent=s.summary||'';
+  $('smsg').textContent=''; renderPast();
+}
+function renderPast(){
+  AD.feedback(cur.code).then(function(items){
+    cur.items=items; items.sort(function(a,b){return b.t-a.t;});
+    $('past').innerHTML=items.slice(0,5).map(function(f){return '<div class="fb"><small class="muted">'+esc(f.tag)+' · '+fmt(f.t)+'</small><br>'+esc(f.text)+'</div>';}).join('');
+  });
+}
+$('go').onclick=function(){
+  $('lerr').textContent='';
+  boot().then(function(){ return AD.login($('em').value.trim(),$('pw').value); }).then(function(){ $('login').hidden=true; $('app').hidden=false; loadList(); })
+  .catch(function(e){ if(FIREBASE_CONFIG||window.JT_ADAPTER) $('lerr').textContent='로그인하지 못했어요. 이메일과 비밀번호를 확인해 주세요.'; });
+};
+$('list').onclick=function(e){ var b=e.target.closest('button[data-i]'); if(b) show(window.__arr[+b.dataset.i]); };
+$('detail').onclick=function(e){ var b=e.target.closest('button[data-t]'); if(b){ $('ftext').value=b.dataset.t; } };
+$('send').onclick=function(){
+  var text=$('ftext').value.trim(); if(!text||!cur) return;
+  var items=(cur.items||[]).concat([{t:Date.now(),tag:$('tag').value,text:text}]);
+  $('smsg').textContent='보내는 중…';
+  AD.send(cur.code,items).then(function(){ $('ftext').value=''; $('smsg').textContent='보냈어요'; renderPast(); }).catch(function(){ $('smsg').textContent='보내지 못했어요'; });
+};
+</script>
+</body>
+</html>
