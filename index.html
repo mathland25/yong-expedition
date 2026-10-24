@@ -342,7 +342,7 @@ function cellRow(from, to, label){
 }
 function weekBlock(n, from){
   var fk = 'feel'+n, nk = 'note'+n;
-  return '<div class="wk"><p class="q">'+n+'주차 루틴 (3칸)</p>'+cellRow(from, from+3, '루틴')+
+  return '<div class="wk"><p class="q">'+n+'주차 공부한 날 (3칸) <small style="font-weight:400;color:var(--ink2)">고른 과목을 공부했으면 눌러</small></p>'+cellRow(from, from+3, '공부한 날')+
     '<p class="q">이번 주 어땠어?</p>'+chips(fk, FEEL, function(x){ return D[fk]===x; })+
     '<p class="q"><label for="'+nk+'">이번 주 한 일 한 줄 (안 써도 돼)</label></p><input type="text" id="'+nk+'" value="'+esc(D[nk])+'" maxlength="80" autocomplete="off"></div>';
 }
@@ -353,13 +353,13 @@ function s5(){
     ? '<span class="good">미션 성공!</span> 보상: '+esc(D.mReward || '아직 안 골랐어')
     : '지금 '+done+'칸이야. '+(MISSION_GOAL-done)+'칸만 더 하면 성공이야.';
   return '<section class="sec"><h2>2주 미션 정하기 <small style="font-size:13px;color:var(--ink2)">같이 정하고, 체크는 집에서 혼자</small></h2><p class="hint">선생님이 정해 주는 게 아니라 용이가 고르는 미션이야. 못 해도 벌은 없어.</p>'+
-    '<p class="q">루틴으로 할 과목은? (주 3일, 15~20분)</p>'+chips('mSubject', MSUBJ, function(x){ return D.mSubject===x; })+
+    '<p class="q">공부할 과목은? (일주일에 3일, 하루 15~20분)</p>'+chips('mSubject', MSUBJ, function(x){ return D.mSubject===x; })+
     '<p class="q">선택 도전은 뭘로 할까? (1칸)</p>'+chips('mChallenge', MCHAL, function(x){ return D.mChallenge===x; })+
     '<p class="q">미션을 해내면 받을 보상은?</p>'+chips('mReward', MREWARD, function(x){ return D.mReward===x; })+
     '<p class="q"><label for="mstart">시작일</label></p><input type="date" id="mstart" value="'+esc(D.mStart)+'">'+
     (dead ? '<p class="hint" style="margin:8px 0 0">마감은 '+dead+'(2주 뒤)이야.</p>' : '')+
     '</section>'+
-    '<section class="sec"><h2>체크판</h2><p class="hint">했으면 눌러. 9칸 중 6칸 이상이면 미션 성공이야.</p>'+
+    '<section class="sec"><h2>체크판</h2><p class="hint">했으면 눌러. 9칸 중 6칸 이상이면 미션 성공이야. 공부한 날 6칸만 채워도 성공이야.</p>'+
     weekBlock(1, 0)+weekBlock(2, 3)+
     '<div class="wk"><p class="q">질문 미션 (2칸): 수업에서 궁금한 것 가져오기</p>'+cellRow(6, 8, '질문')+
     '<p class="q">선택 도전 (1칸)'+(D.mChallenge ? ': '+esc(D.mChallenge) : '')+'</p>'+cellRow(8, 9, '도전 완료')+'</div>'+
