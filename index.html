@@ -1,5 +1,10 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}:root{color-scheme:light}</style>
 <title>용이 탐험대</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;500;700&display=swap">
@@ -352,7 +357,7 @@ function s5(){
   var msg = done >= MISSION_GOAL
     ? '<span class="good">미션 성공!</span> 보상: '+esc(D.mReward || '아직 안 골랐어')
     : '지금 '+done+'칸이야. '+(MISSION_GOAL-done)+'칸만 더 하면 성공이야.';
-  return '<section class="sec"><h2>2주 미션 정하기 <small style="font-size:13px;color:var(--ink2)">같이 정하고, 체크는 집에서 혼자</small></h2><p class="hint">선생님이 정해 주는 게 아니라 용이가 고르는 미션이야. 못 해도 벌은 없어.</p>'+
+  return '<section class="sec"><h2>2주 미션 정하기</h2><p class="hint">같이 정하고, 체크는 집에서 혼자 해. 선생님이 정해 주는 게 아니라 용이가 고르는 미션이야. 못 해도 벌은 없어.</p>'+
     '<p class="q">공부할 과목은? (일주일에 3일, 하루 15~20분)</p>'+chips('mSubject', MSUBJ, function(x){ return D.mSubject===x; })+
     '<p class="q">선택 도전은 뭘로 할까? (1칸)</p>'+chips('mChallenge', MCHAL, function(x){ return D.mChallenge===x; })+
     '<p class="q">미션을 해내면 받을 보상은?</p>'+chips('mReward', MREWARD, function(x){ return D.mReward===x; })+
