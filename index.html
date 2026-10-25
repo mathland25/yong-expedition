@@ -192,27 +192,30 @@ var MSUBJ = ['수학','영어','과학','국어','선생님이랑 같이 정할�
 var MCHAL = ['틀린 문제 3개 다시 풀기','개념 1개를 말로 설명하기','과학 영상 보고 한 줄 정리','1학년 수학 개념 점검 문제 풀기'];
 var MREWARD = ['다음 만남 활동 내가 고르기','팔 나으면 선생님이랑 볼링 한 판','문화체험 코스 먼저 고르기','보상은 다음에 정할래'];
 var FEEL = ['괜찮았어','보통이었어','좀 힘들었어'];
-var MISSION_GOAL = 6, MISSION_CELLS = 9;
+var MISSION_GOAL = 10, MISSION_CELLS = 15;
+var MTIME = ['자기 전','학교 다녀와서','주말 아침','내가 정할래'];
 function todayStr(){ var d = new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
 function addDays(str, n){ var p = str.split('-'); var d = new Date(+p[0], +p[1]-1, +p[2]); d.setDate(d.getDate()+n); return d; }
 function fmtD(d){ return (d.getMonth()+1)+'월 '+d.getDate()+'일'; }
 
-var SINGLE = {fav:1,plan:1,jobPick:1,fun:1,good:1,stuck:1,promise:1,kind:1,place:1,mSubject:1,mChallenge:1,mReward:1,feel1:1,feel2:1};
+var SINGLE = {fav:1,plan:1,jobPick:1,fun:1,good:1,stuck:1,promise:1,kind:1,place:1,mSubject:1,mTime:1,mChallenge:1,mReward:1,feel1:1,feel2:1};
 function blank(){
   return {stage:0, bal:{}, likes:[], read:[], fav:'', star:0, hard:[], plan:'',
     jobs:{}, jobPick:'', jobSubj:[], fun:'', good:'', stuck:'', help:[], promise:'',
     kind:'', place:'', topics:[], budget:{ticket:0,move:0,food:0,snack:0}, memo:'',
-    mSubject:'', mChallenge:'', mReward:'', mStart:todayStr(), mc:[false,false,false,false,false,false,false,false,false],
+    mSubject:'', mTime:'', mBook:'', mChallenge:'', mReward:'', mStart:todayStr(), mc:[false,false,false,false,false,false,false,false,false,false,false,false,false,false,false],
     feel1:'', feel2:'', note1:'', note2:''};
 }
 var D = blank();
 var ui = {confirmReset:false};
 
+function padMc(){ var m = []; for(var i=0;i<MISSION_CELLS;i++){ m.push(!!(D.mc && D.mc[i])); } D.mc = m; }
 function load(){
   try{
     var raw = localStorage.getItem(KEY);
     if(raw){ var s = JSON.parse(raw); for(var k in D){ if(s[k] !== undefined) D[k] = s[k]; } }
   }catch(e){}
+  padMc();
 }
 var saveTimer = null;
 function save(){
@@ -329,7 +332,7 @@ function summaryLines(){
   out.push('■ 학교·공부: 재밌는 것 '+(D.fun||'-')+' / 편한 과목 '+(D.good||'-')+' / 막히는 것 '+(D.stuck||'-')+' / 시작이 쉬운 방식 '+(D.help.join(', ')||'-'));
   out.push('■ 이번 달 약속: ' + (D.promise || '-'));
   out.push('■ 문화체험: '+(D.kind||'-')+' / 장소 '+(D.place||'-')+' / 끌리는 것 '+(D.topics.join(', ')||'-'));
-  out.push('■ 2주 미션: 과목 '+(D.mSubject||'-')+' / 선택 도전 '+(D.mChallenge||'-')+' / 보상 '+(D.mReward||'-')+' / 시작 '+(D.mStart||'-')+' / 달성 '+missionDone()+'/'+MISSION_CELLS+'칸'+
+  out.push('■ 2주 미션: 과목 '+(D.mSubject||'-')+' / 책 '+(D.mBook||'-')+' / 독서 시간 '+(D.mTime||'-')+' / 선택 도전 '+(D.mChallenge||'-')+' / 보상 '+(D.mReward||'-')+' / 시작 '+(D.mStart||'-')+' / 달성 '+missionDone()+'/'+MISSION_CELLS+'칸'+
     ' / 컨디션 1주 '+(D.feel1||'-')+', 2주 '+(D.feel2||'-')+(D.note1 ? ' / 1주 메모: '+D.note1 : '')+(D.note2 ? ' / 2주 메모: '+D.note2 : ''));
   return out;
 }
@@ -345,9 +348,10 @@ function cellRow(from, to, label){
   for(var i=from;i<to;i++){ h += B('cell', String(i), label + (to-from>1 ? ' '+(i-from+1) : ''), !!D.mc[i]); }
   return '<div class="cells">'+h+'</div>';
 }
-function weekBlock(n, from){
+function weekBlock(n, from, rfrom){
   var fk = 'feel'+n, nk = 'note'+n;
   return '<div class="wk"><p class="q">'+n+'주차 공부한 날 (3칸) <small style="font-weight:400;color:var(--ink2)">고른 과목을 공부했으면 눌러</small></p>'+cellRow(from, from+3, '공부한 날')+
+    '<p class="q">'+n+'주차 독서한 날 (3칸) <small style="font-weight:400;color:var(--ink2)">책을 15분 읽었으면 눌러</small></p>'+cellRow(rfrom, rfrom+3, '독서한 날')+
     '<p class="q">이번 주 어땠어?</p>'+chips(fk, FEEL, function(x){ return D[fk]===x; })+
     '<p class="q"><label for="'+nk+'">이번 주 한 일 한 줄 (안 써도 돼)</label></p><input type="text" id="'+nk+'" value="'+esc(D[nk])+'" maxlength="80" autocomplete="off"></div>';
 }
@@ -359,13 +363,15 @@ function s5(){
     : '지금 '+done+'칸이야. '+(MISSION_GOAL-done)+'칸만 더 하면 성공이야.';
   return '<section class="sec"><h2>2주 미션 정하기</h2><p class="hint">같이 정하고, 체크는 집에서 혼자 해. 선생님이 정해 주는 게 아니라 용이가 고르는 미션이야. 못 해도 벌은 없어.</p>'+
     '<p class="q">공부할 과목은? (일주일에 3일, 하루 15~20분)</p>'+chips('mSubject', MSUBJ, function(x){ return D.mSubject===x; })+
+    '<p class="q"><label for="mbook">읽을 책은? (용이가 골라)</label></p><input type="text" id="mbook" value="'+esc(D.mBook)+'" maxlength="60" autocomplete="off" placeholder="책 이름">'+
+    '<p class="q">독서는 언제 할까? (일주일에 3일, 하루 15분)</p>'+chips('mTime', MTIME, function(x){ return D.mTime===x; })+
     '<p class="q">선택 도전은 뭘로 할까? (1칸)</p>'+chips('mChallenge', MCHAL, function(x){ return D.mChallenge===x; })+
     '<p class="q">미션을 해내면 받을 보상은?</p>'+chips('mReward', MREWARD, function(x){ return D.mReward===x; })+
     '<p class="q"><label for="mstart">시작일</label></p><input type="date" id="mstart" value="'+esc(D.mStart)+'">'+
     (dead ? '<p class="hint" style="margin:8px 0 0">마감은 '+dead+'(2주 뒤)이야.</p>' : '')+
     '</section>'+
-    '<section class="sec"><h2>체크판</h2><p class="hint">했으면 눌러. 9칸 중 6칸 이상이면 미션 성공이야. 공부한 날 6칸만 채워도 성공이야.</p>'+
-    weekBlock(1, 0)+weekBlock(2, 3)+
+    '<section class="sec"><h2>체크판</h2><p class="hint">했으면 눌러. 15칸 중 10칸 이상이면 미션 성공이야. 공부한 날과 독서한 날을 같이 세.</p>'+
+    weekBlock(1, 0, 9)+weekBlock(2, 3, 12)+
     '<div class="wk"><p class="q">질문 미션 (2칸): 수업에서 궁금한 것 가져오기</p>'+cellRow(6, 8, '질문')+
     '<p class="q">선택 도전 (1칸)'+(D.mChallenge ? ': '+esc(D.mChallenge) : '')+'</p>'+cellRow(8, 9, '도전 완료')+'</div>'+
     '<div class="meter" aria-hidden="true"><i style="width:'+(done/MISSION_CELLS*100)+'%"></i><span class="mark"></span></div>'+
@@ -464,6 +470,7 @@ document.addEventListener('change', function(e){
 document.addEventListener('input', function(e){
   var id = e.target && e.target.id;
   if(id === 'note1' || id === 'note2'){ D[id] = e.target.value; save(); return; }
+  if(id === 'mbook'){ D.mBook = e.target.value; save(); return; }
   if(e.target && e.target.id === 'memo'){
     D.memo = e.target.value; save();
     var st = document.getElementById('sumtext'); if(st) st.value = summaryText();

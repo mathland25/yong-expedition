@@ -40,7 +40,7 @@ button.main{background:var(--accent);color:var(--on);border-color:var(--accent);
   <div class="card"><h2>학생 목록</h2><div id="list" class="row" style="display:grid;gap:8px"></div></div>
   <div class="card" id="detail" hidden>
     <h2 id="dname"></h2><p class="muted" id="dtime"></p>
-    <p class="muted">2주 미션 체크판</p><div class="cells" id="dcells"></div><p class="muted" id="dmeta"></p>
+    <p class="muted">2주 미션 체크판 (초록색이 한 칸)</p><div id="dcells"></div><p class="muted" id="dmeta"></p>
     <p class="muted">최근 기록 요약</p><div class="sum" id="dsum"></div>
     <h2 style="margin-top:14px">피드백 보내기</h2>
     <div class="row">
@@ -96,9 +96,10 @@ function loadList(){
 function show(s){
   cur = s; var st={}; try{ st=JSON.parse(s.state||'{}'); }catch(e){}
   $('detail').hidden=false; $('dname').textContent=(s.name||'학생')+' ('+s.code+')'; $('dtime').textContent='마지막 저장 '+fmt(s.t);
-  var mc=st.mc||[]; $('dcells').innerHTML=Array.apply(null,Array(9)).map(function(_,i){return '<i class="'+(mc[i]?'on':'')+'"></i>';}).join('');
-  var n=mc.filter(Boolean).length;
-  $('dmeta').textContent='달성 '+n+'/9 · 과목 '+(st.mSubject||'-')+' · 도전 '+(st.mChallenge||'-')+' · 보상 '+(st.mReward||'-')+' · 시작 '+(st.mStart||'-')+' · 컨디션 '+(st.feel1||'-')+' / '+(st.feel2||'-');
+  var mc=st.mc||[]; var n=mc.filter(Boolean).length;
+  function row(label,from,to){ var h=''; for(var i=from;i<to;i++){ h+='<i class="'+(mc[i]?'on':'')+'"></i>'; } return '<p class="muted" style="margin:6px 0 2px">'+label+'</p><div class="cells" style="grid-template-columns:repeat('+(to-from)+',1fr)">'+h+'</div>'; }
+  $('dcells').innerHTML=row('1주차 공부',0,3)+row('1주차 독서',9,12)+row('2주차 공부',3,6)+row('2주차 독서',12,15)+row('질문',6,8)+row('선택 도전',8,9);
+  $('dmeta').textContent='달성 '+n+'/15 (성공 10칸) · 과목 '+(st.mSubject||'-')+' · 책 '+(st.mBook||'-')+' · 독서 시간 '+(st.mTime||'-')+' · 도전 '+(st.mChallenge||'-')+' · 보상 '+(st.mReward||'-')+' · 시작 '+(st.mStart||'-')+' · 컨디션 '+(st.feel1||'-')+' / '+(st.feel2||'-');
   $('dsum').textContent=s.summary||'';
   $('smsg').textContent=''; renderPast();
 }
