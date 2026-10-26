@@ -40,7 +40,8 @@ button.main{background:var(--accent);color:var(--on);border-color:var(--accent);
   <div class="card"><h2>학생 목록</h2><div id="list" class="row" style="display:grid;gap:8px"></div></div>
   <div class="card" id="detail" hidden>
     <h2 id="dname"></h2><p class="muted" id="dtime"></p>
-    <p class="muted">2주 도전 체크판 (초록색이 한 칸)</p><div id="dcells"></div><p class="muted" id="dmeta"></p>
+    <p class="muted">독서 체크판 (초록색이 한 칸)</p><div id="dcells"></div><p class="muted" id="dmeta"></p>
+    <h2 style="margin-top:14px">회차별 비교</h2><div id="dcmp" style="overflow-x:auto"></div>
     <p class="muted">최근 기록 요약</p><div class="sum" id="dsum"></div>
     <h2 style="margin-top:14px">피드백 보내기</h2>
     <div class="row">
@@ -96,17 +97,34 @@ function loadList(){
 function show(s){
   cur = s; var st={}; try{ st=JSON.parse(s.state||'{}'); }catch(e){}
   $('detail').hidden=false; $('dname').textContent=(s.name||'학생')+' ('+s.code+')'; $('dtime').textContent='마지막 저장 '+fmt(s.t);
-  var mc=st.mc||[]; var n=mc.filter(Boolean).length; var shared=!!s.share;
-  function row(label,from,to){ var h=''; for(var i=from;i<to;i++){ h+='<i class="'+(mc[i]?'on':'')+'"></i>'; } return '<p class="muted" style="margin:6px 0 2px">'+label+'</p><div class="cells" style="grid-template-columns:repeat('+(to-from)+',1fr)">'+h+'</div>'; }
-  if(shared){
-    $('dcells').innerHTML=row('1주차 운동',0,3)+row('1주차 독서',3,6)+row('2주차 운동',6,9)+row('2주차 독서',9,12);
-    $('dmeta').textContent='달성 '+n+'/12 (성공 8칸) · 책 '+(st.mBook||'-')+' ('+(st.mBookDue||'제목 보낼 날 미정')+') · 독서 시간 '+(st.mTime||'-')+' · 운동 '+(st.mMove||'-')+' · 축구 '+(st.mSoccer||'-')+' · 보상 '+(st.mReward||'-')+' · 시작 '+(st.mStart||'-')+' · 컨디션 '+(st.feel1||'-')+' / '+(st.feel2||'-');
-  }else{
-    $('dcells').innerHTML='<p class="muted">용이가 체크판을 공유하지 않기로 했어요. 용이가 "선생님께 보여 줄래"를 고르면 여기에 보여요.</p>';
-    $('dmeta').textContent='';
-  }
+  var rd=st.rd||[]; var n=rd.filter(Boolean).length;
+  function row(label,from,to){ var h=''; for(var i=from;i<to;i++){ h+='<i class="'+(rd[i]?'on':'')+'"></i>'; } return '<p class="muted" style="margin:6px 0 2px">'+label+'</p><div class="cells" style="grid-template-columns:repeat('+(to-from)+',1fr)">'+h+'</div>'; }
+  $('dcells').innerHTML=row('1주차 독서 · 읽은 느낌: '+(st.rf1||'-'),0,3)+row('2주차 독서 · 읽은 느낌: '+(st.rf2||'-'),3,6);
+  $('dmeta').textContent='달성 '+n+'/6 (성공 4칸) · 책 '+(st.mBook||'-')+' · 독서 시간 '+(st.mTime||'-')+' · 시작 '+(st.rStart||'-')+' · 축구 '+(st.mSoccer||'-')+' · 보상 '+(st.mReward||'-');
+  renderCmp(st, s.jobTitle);
   $('dsum').textContent=s.summary||'';
   $('smsg').textContent=''; renderPast();
+}
+function renderCmp(st, jobTitle){
+  var hist=(st.hist||[]).slice();
+  var cur={d:'진행 중',job:'',fun:st.fun,good:st.good,stuck:st.stuck,help:st.help||[],promise:st.promise,plan:st.plan,kind:st.kind,place:st.place,topics:st.topics||[],book:st.mBook,rdone:(st.rd||[]).filter(Boolean).length,rf1:st.rf1,rf2:st.rf2};
+  var jobs={love:'끌려요',look:'궁금해'}; var JOBN={};
+  cur.job=jobTitle||'';
+  var cols=hist.concat([cur]);
+  var rows=[['끌리는 직업','job'],['재밌는 것','fun'],['편한 과목','good'],['막히는 것','stuck'],['시작이 쉬운 방식','help'],['이번 달 약속','promise'],['독서 방식','plan'],['문화체험','kind'],['끌리는 체험','topics'],['책','book'],['독서 칸(6칸)','rdone'],['읽은 느낌 1주','rf1'],['읽은 느낌 2주','rf2']];
+  function v(c,k){ var x=c[k]; if(Array.isArray(x)) x=x.join(', '); if(x===undefined||x===null||x==='') return '-'; return x; }
+  var h='<table style="border-collapse:collapse;font-size:14px;min-width:100%"><tr><th style="text-align:left;padding:4px 8px;border-bottom:1px solid var(--line)"></th>'+cols.map(function(c){return '<th style="padding:4px 8px;border-bottom:1px solid var(--line);white-space:nowrap">'+esc(c.d)+'</th>';}).join('')+'</tr>';
+  rows.forEach(function(r){
+    var vals=cols.map(function(c){return v(c,r[1]);});
+    if(vals.every(function(x){return x==='-';})) return;
+    var diff = vals.some(function(x,i){return i>0 && x!==vals[i-1];});
+    h+='<tr><td style="padding:4px 8px;color:var(--ink2);white-space:nowrap;vertical-align:top">'+r[0]+'</td>'+vals.map(function(x){return '<td style="padding:4px 8px;vertical-align:top;'+(diff?'background:var(--sel)':'')+'">'+esc(x)+'</td>';}).join('')+'</tr>';
+  });
+  h+='</table>';
+  var rh=(st.rhist||[]);
+  if(rh.length){ h+='<p class="muted" style="margin:10px 0 2px">지난 독서 2주 기록</p>'+rh.map(function(x){return '<div class="fb"><small class="muted">'+esc(x.s)+' ~ '+esc(x.e)+'</small> 책 '+esc(x.book||'-')+' · '+x.done+'/6칸 · 느낌 '+esc(x.f1||'-')+' / '+esc(x.f2||'-')+'</div>';}).join(''); }
+  h+='<p class="muted">색이 칠해진 줄은 회차마다 달라진 항목이에요.</p>';
+  $('dcmp').innerHTML=h;
 }
 function renderPast(){
   AD.feedback(cur.code).then(function(items){

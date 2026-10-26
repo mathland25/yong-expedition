@@ -129,12 +129,12 @@ input[type=text]:focus-visible, input[type=date]:focus-visible{outline:3px solid
 
 <div class="app">
   <header>
-    <p class="eyebrow">영재키움 멘토링 · 첫 대면</p>
-    <h1>용이 탐험대</h1>
-    <p class="sub">버튼만 누르면 돼. 정답은 없고, 고르기 싫은 건 건너뛰어도 괜찮아.</p>
+    <p class="eyebrow" id="eb">영재키움 멘토링 · 첫 대면</p>
+    <h1 id="h1t">용이 탐험대</h1>
+    <p class="sub" id="subt">버튼만 누르면 돼. 정답은 없고, 고르기 싫은 건 건너뛰어도 괜찮아.</p>
   </header>
   <div id="sync"></div>
-  <p class="legend"><b>오늘 같이</b> 1~5코스 · <b>집에서 혼자</b> 6코스 2주 도전 체크</p>
+  <p class="legend" id="legend"><b>선생님이랑 같이</b> 1~5코스 · <b>집에서 혼자</b> 독서 체크는 홈 화면에서</p>
   <nav class="rail" id="rail" aria-label="오늘의 코스"></nav>
   <main id="main"></main>
   <div class="nav" id="nav"></div>
@@ -153,7 +153,7 @@ var FIREBASE_CONFIG = {
   appId: "1:350004032975:web:7539dad5be3e2b45838eba"
 };
 var STUDENT_NAME = '용이';
-var STAGES = ['몸풀기','독서 점검','직업 탐험','학교·공부','문화체험','2주 도전','완주'];
+var STAGES = ['몸풀기','독서 점검','직업 탐험','학교·공부','문화체험','독서 약속','완주'];
 var BAL = [
   ['스키','자전거'],
   ['직접 만들어보기','완성품 사서 쓰기'],
@@ -195,22 +195,26 @@ var MCHAL = ['틀린 문제 3개 다시 풀기','개념 1개를 말로 설명하
 var MREWARD = ['다음 만남 활동 내가 고르기','팔 나으면 선생님이랑 볼링 한 판','문화체험 코스 먼저 고르기','보상은 다음에 정할래'];
 var FEEL = ['괜찮았어','보통이었어','좀 힘들었어'];
 var MISSION_GOAL = 8, MISSION_CELLS = 12;
+var RFEEL = ['재밌었어','보통이었어','별로였어'];
+var READ_CELLS = 6, READ_GOAL = 4;
 var MTIME = ['자기 전','학교 다녀와서','주말 아침','내가 정할래'];
 function todayStr(){ var d = new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
 function addDays(str, n){ var p = str.split('-'); var d = new Date(+p[0], +p[1]-1, +p[2]); d.setDate(d.getDate()+n); return d; }
 function fmtD(d){ return (d.getMonth()+1)+'월 '+d.getDate()+'일'; }
 
-var SINGLE = {fav:1,plan:1,jobPick:1,fun:1,good:1,stuck:1,promise:1,kind:1,place:1,mSubject:1,mTime:1,mChallenge:1,mReward:1,mMove:1,mShare:1,feel1:1,feel2:1};
+var SINGLE = {fav:1,plan:1,jobPick:1,fun:1,good:1,stuck:1,promise:1,kind:1,place:1,mSubject:1,mTime:1,mChallenge:1,mReward:1,mMove:1,mShare:1,rf1:1,rf2:1,feel1:1,feel2:1};
 function blank(){
   return {stage:0, bal:{}, likes:[], read:[], fav:'', star:0, hard:[], plan:'',
     jobs:{}, jobPick:'', jobSubj:[], fun:'', good:'', stuck:'', help:[], promise:'',
     kind:'', place:'', topics:[], budget:{ticket:0,move:0,food:0,snack:0}, memo:'',
     mv:2, mMove:'', mShare:'', mSoccer:'', mBookDue:'', mSubject:'', mTime:'', mBook:'', mChallenge:'', mReward:'', mStart:todayStr(), mc:[false,false,false,false,false,false,false,false,false,false,false,false],
-    feel1:'', feel2:'', note1:'', note2:''};
+    feel1:'', feel2:'', note1:'', note2:'',
+    rd:[false,false,false,false,false,false], rf1:'', rf2:'', rStart:todayStr(), hist:[], rhist:[]};
 }
 var D = blank();
-var ui = {confirmReset:false};
+var ui = {confirmReset:false, confirmRound:false, confirmSave:false};
 
+function padRd(){ var m = []; for(var i=0;i<READ_CELLS;i++){ m.push(!!(D.rd && D.rd[i])); } D.rd = m; if(!Array.isArray(D.hist)) D.hist = []; if(!Array.isArray(D.rhist)) D.rhist = []; }
 function padMc(){ var m = []; for(var i=0;i<MISSION_CELLS;i++){ m.push(!!(D.mc && D.mc[i])); } D.mc = m; }
 function load(){
   try{
@@ -218,7 +222,7 @@ function load(){
     if(raw){ var s = JSON.parse(raw); for(var k in D){ if(s[k] !== undefined) D[k] = s[k]; } if(s.mv !== 2){ D.mc = []; } }
   }catch(e){}
   D.mv = 2;
-  padMc();
+  padMc(); padRd();
 }
 var saveTimer = null;
 function save(){
@@ -245,7 +249,7 @@ function stageDone(i){
   if(i===2) return Object.keys(D.jobs).length>0 || !!D.jobPick || D.jobSubj.length>0;
   if(i===3) return !!(D.fun||D.good||D.stuck||D.promise) || D.help.length>0;
   if(i===4) return !!(D.kind||D.place) || D.topics.length>0;
-  if(i===5) return !!(D.mBook||D.mMove||D.mReward||D.mShare) || missionDone()>0;
+  if(i===5) return !!(D.mBook||D.mTime||D.mReward) || readDone()>0;
   return false;
 }
 
@@ -335,12 +339,7 @@ function summaryLines(forTeacher){
   out.push('■ 학교·공부: 재밌는 것 '+(D.fun||'-')+' / 편한 과목 '+(D.good||'-')+' / 막히는 것 '+(D.stuck||'-')+' / 시작이 쉬운 방식 '+(D.help.join(', ')||'-'));
   out.push('■ 이번 달 약속: ' + (D.promise || '-'));
   out.push('■ 문화체험: '+(D.kind||'-')+' / 장소 '+(D.place||'-')+' / 끌리는 것 '+(D.topics.join(', ')||'-'));
-  if(D.mShare === MSHARE[0] || !forTeacher){
-    out.push('■ 2주 도전: 책 '+(D.mBook||'-')+(D.mBookDue ? ' (제목 보낼 날 '+D.mBookDue+')' : '')+' / 독서 시간 '+(D.mTime||'-')+' / 운동 '+(D.mMove||'-')+' / 보상 '+(D.mReward||'-')+' / 시작 '+(D.mStart||'-')+' / 달성 '+missionDone()+'/'+MISSION_CELLS+'칸'+
-      ' / 컨디션 1주 '+(D.feel1||'-')+', 2주 '+(D.feel2||'-')+(D.note1 ? ' / 1주 메모: '+D.note1 : '')+(D.note2 ? ' / 2주 메모: '+D.note2 : ''));
-  }else{
-    out.push('■ 2주 도전: 용이가 선생님께 공유하지 않기로 했어요');
-  }
+  out.push('■ 독서 체크: 책 '+(D.mBook||'-')+' / 독서 시간 '+(D.mTime||'-')+' / 이번 2주 '+readDone()+'/'+READ_CELLS+'칸 / 읽은 느낌 1주 '+(D.rf1||'-')+', 2주 '+(D.rf2||'-')+' / 보상 '+(D.mReward||'-'));
   if(D.mSoccer) out.push('■ 같이 축구하는 날: '+D.mSoccer);
   return out;
 }
@@ -349,42 +348,48 @@ function summaryText(forTeacher){
   if(D.memo.trim()) t += '\n■ 선생님 메모: ' + D.memo.trim();
   return t;
 }
-function missionDone(){ var n = 0; for(var i=0;i<D.mc.length;i++){ if(D.mc[i]) n++; } return n; }
-function missionLabel(){ return (D.mReward || '보상 미정') + ' · ' + missionDone() + '/' + MISSION_CELLS + '칸'; }
-function cellRow(from, to, label){
+function missionDone(){ return 0; }
+function readDone(){ var n = 0; for(var i=0;i<READ_CELLS;i++){ if(D.rd[i]) n++; } return n; }
+function missionLabel(){ return (D.mBook || '책 미정') + ' · ' + readDone() + '/' + READ_CELLS + '칸'; }
+function rcells(from, to){
   var h = '';
-  for(var i=from;i<to;i++){ h += B('cell', String(i), label + (to-from>1 ? ' '+(i-from+1) : ''), !!D.mc[i]); }
-  return '<div class="cells">'+h+'</div>';
+  for(var i=from;i<to;i++){ h += B('rcell', String(i), '독서 '+(i-from+1), !!D.rd[i]); }
+  return '<div class="cells" style="grid-template-columns:repeat(3,minmax(0,1fr))">'+h+'</div>';
 }
-function weekBlock(n, from, rfrom){
-  var fk = 'feel'+n, nk = 'note'+n;
-  return '<div class="wk"><p class="q">'+n+'주차 운동한 날 (3칸) <small style="font-weight:400;color:var(--ink2)">몸을 움직였으면 눌러</small></p>'+cellRow(from, from+3, '운동한 날')+
-    '<p class="q">'+n+'주차 독서한 날 (3칸) <small style="font-weight:400;color:var(--ink2)">만화책도 괜찮아, 15분이면 돼</small></p>'+cellRow(rfrom, rfrom+3, '독서한 날')+
-    '<p class="q">이번 주 어땠어?</p>'+chips(fk, FEEL, function(x){ return D[fk]===x; })+
-    '<p class="q"><label for="'+nk+'">이번 주 한 일 한 줄 (안 써도 돼)</label></p><input type="text" id="'+nk+'" value="'+esc(D[nk])+'" maxlength="80" autocomplete="off"></div>';
+function rweek(n, from){
+  var fk = 'rf'+n;
+  return '<div class="wk"><p class="q">'+n+'주차 독서한 날 (3칸) <small style="font-weight:400;color:var(--ink2)">15분 읽었으면 눌러. 만화책도 괜찮아</small></p>'+rcells(from, from+3)+
+    '<p class="q">읽은 느낌은?</p>'+chips(fk, RFEEL, function(x){ return D[fk]===x; })+'</div>';
+}
+function readSetup(){
+  return '<section class="sec"><h2>읽을 책</h2><p class="hint">용이가 고르는 책이야. 만화책도 좋아.</p>'+
+    '<p class="q"><label for="mbook">책 이름</label></p><input type="text" id="mbook" value="'+esc(D.mBook)+'" maxlength="60" autocomplete="off" placeholder="책 이름">'+
+    '<p class="q">언제 읽을까? (일주일에 3일, 하루 15분)</p>'+chips('mTime', MTIME, function(x){ return D.mTime===x; })+
+    '</section>';
+}
+function readBoard(){
+  var done = readDone();
+  var dead = D.rStart ? fmtD(addDays(D.rStart, 14)) : '';
+  var msg = done >= READ_GOAL
+    ? '<span class="good">이번 2주 성공!</span>'
+    : '지금 '+done+'칸이야. '+(READ_GOAL-done)+'칸만 더 읽으면 성공이야.';
+  var again = ui.confirmRound
+    ? '<button type="button" class="btn main" data-g="newroundyes">이번 2주를 마치고 새로 시작</button><button type="button" class="btn" data-g="newroundno">취소</button>'
+    : (done > 0 ? '<button type="button" class="btn" data-g="newround">새 2주 시작하기</button>' : '');
+  return '<section class="sec"><h2>독서 체크판</h2><p class="hint">'+(dead ? '이번 2주는 '+dead+'까지야. ' : '')+'6칸 중 4칸 이상이면 성공이야.</p>'+
+    rweek(1, 0)+rweek(2, 3)+
+    '<div class="meter" aria-hidden="true"><i style="width:'+(done/READ_CELLS*100)+'%"></i><span class="mark"></span></div>'+
+    '<p class="left">'+done+'/'+READ_CELLS+'칸 · '+msg+'</p>'+
+    (again ? '<div class="actions">'+again+'</div>' : '')+'</section>';
 }
 function s5(){
-  var done = missionDone();
-  var dead = D.mStart ? fmtD(addDays(D.mStart, 14)) : '';
-  var msg = done >= MISSION_GOAL
-    ? '<span class="good">도전 성공!</span> 보상: '+esc(D.mReward || '아직 안 골랐어')
-    : '지금 '+done+'칸이야. '+(MISSION_GOAL-done)+'칸만 더 하면 성공이야.';
-  return '<section class="sec"><h2>내가 정하는 2주 도전</h2><p class="hint">선생님이 정해 주는 게 아니라 용이가 고르는 도전이야. 못 해도 벌은 없고, 하고 싶은 것만 골라도 돼.</p>'+
-    '<p class="q"><label for="mbook">읽을 책은? (만화책도 좋아)</label></p><input type="text" id="mbook" value="'+esc(D.mBook)+'" maxlength="60" autocomplete="off" placeholder="책 이름">'+
-    '<p class="q"><label for="mbookdue">책 제목을 선생님께 보낼 날</label></p><input type="date" id="mbookdue" value="'+esc(D.mBookDue)+'">'+
-    '<p class="q">독서는 언제 할까? (일주일에 3일, 하루 15분)</p>'+chips('mTime', MTIME, function(x){ return D.mTime===x; })+
-    '<p class="q">운동은 뭘로 할까? (일주일에 3일)</p>'+chips('mMove', MMOVE, function(x){ return D.mMove===x; })+
-    '<p class="q"><label for="msoccer">선생님이랑 같이 축구하는 날</label></p><input type="date" id="msoccer" value="'+esc(D.mSoccer)+'">'+
-    '<p class="q">해내면 받을 보상은?</p>'+chips('mReward', MREWARD, function(x){ return D.mReward===x; })+
-    '<p class="q"><label for="mstart">시작일</label></p><input type="date" id="mstart" value="'+esc(D.mStart)+'">'+
-    (dead ? '<p class="hint" style="margin:8px 0 0">마감은 '+dead+'(2주 뒤)이야.</p>' : '')+
-    '<p class="q">선생님이 내 체크판을 볼 수 있게 할까?</p>'+chips('mShare', MSHARE, function(x){ return D.mShare===x; })+
-    '<p class="hint" style="margin:6px 0 0">"나만 볼래"를 고르면 선생님 화면에는 체크판이 안 보여. 언제든 바꿀 수 있어.</p>'+
-    '</section>'+
-    '<section class="sec"><h2>체크판</h2><p class="hint">했으면 눌러. 12칸 중 8칸 이상이면 도전 성공이야. 운동한 날과 독서한 날을 같이 세.</p>'+
-    weekBlock(1, 0, 3)+weekBlock(2, 6, 9)+
-    '<div class="meter" aria-hidden="true"><i style="width:'+(done/MISSION_CELLS*100)+'%"></i><span class="mark"></span></div>'+
-    '<p class="left">'+done+'/'+MISSION_CELLS+'칸 · '+msg+'</p></section>';
+  var h = readSetup();
+  if(MODE === 'meeting'){
+    h += '<section class="sec"><h2>같이 정하기</h2>'+
+      '<p class="q">해내면 받을 보상은?</p>'+chips('mReward', MREWARD, function(x){ return D.mReward===x; })+
+      '<p class="q"><label for="msoccer">선생님이랑 같이 축구하는 날</label></p><input type="date" id="msoccer" value="'+esc(D.mSoccer)+'"></section>';
+  }
+  return h + readBoard();
 }
 function s6(){
   var cards = [
@@ -392,9 +397,13 @@ function s6(){
     ['가고 싶은 문화체험', (D.kind||'미정') + (D.place ? ' · '+D.place : '')],
     ['제일 마음에 걸린 직업', (jobByKey(D.jobPick)||{t:'아직 없어'}).t],
     ['앞으로 독서 방식', D.plan || '아직 안 정했어'],
-    ['2주 도전', missionLabel()],
+    ['독서 체크', missionLabel()],
     ['같이 축구하는 날', D.mSoccer || '아직 안 정했어']
   ];
+  var hn = D.hist.length;
+  var saveBox = ui.confirmSave
+    ? '<button type="button" class="btn main" data-g="savesessionyes">저장하고 새 만남 준비</button><button type="button" class="btn" data-g="savesessionno">취소</button>'
+    : '<button type="button" class="btn main" data-g="savesession">이번 만남 저장</button>';
   var reset = ui.confirmReset
     ? '<button type="button" class="btn main" data-g="resetyes">지금까지 답을 모두 지우기</button><button type="button" class="btn" data-g="resetno">취소</button>'
     : '<button type="button" class="btn" data-g="reset">처음부터 다시</button>';
@@ -405,10 +414,25 @@ function s6(){
     '<textarea id="memo" rows="3" placeholder="용이가 한 말, 관찰한 점을 그대로 적어두기">'+esc(D.memo)+'</textarea>'+
     '<label for="sumtext" class="q" style="display:block">정리 글</label>'+
     '<textarea id="sumtext" rows="13" readonly>'+esc(summaryText())+'</textarea>'+
-    '<div class="actions"><button type="button" class="btn main" data-g="copy">정리 글 복사</button>'+reset+'</div></section>';
+    '<div class="actions"><button type="button" class="btn main" data-g="copy">정리 글 복사</button>'+reset+'</div></section>'+
+    '<section class="sec"><h2>이번 만남 저장</h2><p class="hint">저장하면 오늘 고른 답이 날짜와 함께 기록으로 남고, 다음 만남에서는 처음부터 다시 고를 수 있어. 독서 체크는 그대로 이어져. 지금까지 저장한 만남 '+hn+'회.</p>'+
+    '<div class="actions">'+saveBox+'</div></section>';
 }
 
+function renderHome(){
+  document.getElementById('eb').textContent = '영재키움 멘토링';
+  document.getElementById('h1t').textContent = '용이 독서 체크';
+  document.getElementById('subt').textContent = '15분 읽었으면 한 칸씩 눌러. 못 한 날은 괜찮아.';
+  document.getElementById('legend').hidden = true;
+  document.getElementById('rail').hidden = true;
+  document.getElementById('nav').hidden = true;
+  document.getElementById('main').innerHTML = s5();
+}
 function render(){
+  if(MODE === 'home'){ renderHome(); return; }
+  document.getElementById('legend').hidden = false;
+  document.getElementById('rail').hidden = false;
+  document.getElementById('nav').hidden = false;
   document.getElementById('rail').innerHTML = STAGES.map(function(n,i){
     return '<button type="button" class="stop'+(i===D.stage?' cur':'')+(stageDone(i)?' done':'')+'" data-g="go" data-v="'+i+'"'+(i===D.stage?' aria-current="step"':'')+'><span class="n">'+(i+1)+'</span><span>'+n+'</span></button>';
   }).join('');
@@ -418,7 +442,19 @@ function render(){
   var next = D.stage<6 ? '<button type="button" class="btn main" data-g="go" data-v="'+(D.stage+1)+'">'+(D.stage===5?'완주하기':'다음 코스')+'</button>' : '';
   document.getElementById('nav').innerHTML = prev + next;
 }
-
+function newRound(){
+  D.rhist.push({s:D.rStart, e:todayStr(), book:D.mBook, done:readDone(), f1:D.rf1, f2:D.rf2});
+  D.rd = [false,false,false,false,false,false]; D.rf1 = ''; D.rf2 = ''; D.rStart = todayStr();
+  ui.confirmRound = false; save(); render(); window.scrollTo(0,0);
+}
+function saveSession(){
+  var job = jobByKey(D.jobPick);
+  D.hist.push({d:todayStr(), job:(job ? job.t : ''), fun:D.fun, good:D.good, stuck:D.stuck, help:D.help.slice(), promise:D.promise, plan:D.plan,
+    kind:D.kind, place:D.place, topics:D.topics.slice(), book:D.mBook, rdone:readDone(), rf1:D.rf1, rf2:D.rf2});
+  var keep = {hist:D.hist, rhist:D.rhist, mBook:D.mBook, mTime:D.mTime, mReward:D.mReward, mSoccer:D.mSoccer, rd:D.rd, rf1:D.rf1, rf2:D.rf2, rStart:D.rStart};
+  D = blank(); for(var k in keep){ D[k] = keep[k]; }
+  ui.confirmSave = false; save(); render(); window.scrollTo(0,0); setStatus('이번 만남을 저장했어요. 새 만남을 시작할 수 있어요.');
+}
 function act(g, v, i){
   if(g==='go'){ D.stage = +v; ui.confirmReset = false; save(); render(); window.scrollTo(0,0); return; }
   if(g==='setcode'){ var inp = document.getElementById('codein'); var c = ((inp && inp.value) || '').trim(); if(c){ setCode(c); } return; }
@@ -444,6 +480,13 @@ function act(g, v, i){
     D.budget[i] = nxt; setStatus('');
   }
   else if(g==='cell'){ D.mc[+v] = !D.mc[+v]; }
+  else if(g==='rcell'){ D.rd[+v] = !D.rd[+v]; }
+  else if(g==='newround'){ ui.confirmRound = true; render(); return; }
+  else if(g==='newroundno'){ ui.confirmRound = false; render(); return; }
+  else if(g==='newroundyes'){ newRound(); return; }
+  else if(g==='savesession'){ ui.confirmSave = true; render(); return; }
+  else if(g==='savesessionno'){ ui.confirmSave = false; render(); return; }
+  else if(g==='savesessionyes'){ saveSession(); return; }
   else if(SINGLE[g]){ D[g] = (D[g]===v ? '' : v); }
   else if(g==='copy'){
     var ta = document.getElementById('sumtext'); ta.value = summaryText();
@@ -513,7 +556,7 @@ function schedulePush(){ if(!SY.connected) return; clearTimeout(SY.pushTimer); S
 function pushNow(){
   if(!SY.connected) return;
   SY.msg = '저장 중…'; renderSync();
-  SY.adapter.push(SY.code, {name:STUDENT_NAME, t:localT(), state:JSON.stringify(D), summary:summaryText(true), share:(D.mShare === MSHARE[0])}).then(function(){
+  SY.adapter.push(SY.code, {name:STUDENT_NAME, t:localT(), state:JSON.stringify(D), summary:summaryText(true), share:true, jobTitle:((jobByKey(D.jobPick)||{}).t||'')}).then(function(){
     SY.msg = '선생님과 연결됨 · 저장했어'; renderSync();
   }).catch(function(){
     SY.msg = '저장하지 못했어. 인터넷을 확인해 줘. 기록은 이 컴퓨터에 남아 있어.'; renderSync();
@@ -529,7 +572,7 @@ function connect(){
       try{
         var s = JSON.parse(r.state);
         for(var k in D){ if(s[k] !== undefined) D[k] = s[k]; }
-        if(s.mv !== 2){ D.mc = []; } D.mv = 2; padMc();
+        if(s.mv !== 2){ D.mc = []; } D.mv = 2; padMc(); padRd();
         lsSet(KEY, JSON.stringify(D)); lsSet(KEY+'-t', String(rt)); render();
       }catch(e){}
     }
@@ -565,6 +608,13 @@ function renderSync(){
   }
   el.innerHTML = h;
 }
+function getMode(){
+  var m = '';
+  try{ m = new URLSearchParams(location.search).get('m') || ''; }catch(e){}
+  if(m === '1'){ lsSet(KEY+'-mode', 'meeting'); } else if(m === '0'){ lsSet(KEY+'-mode', 'home'); }
+  return lsGet(KEY+'-mode') || (FIREBASE_CONFIG ? 'home' : 'meeting');
+}
+var MODE = 'meeting';
 function bootSync(){
   var p = null;
   try{ p = new URLSearchParams(location.search).get('c'); }catch(e){}
@@ -578,6 +628,7 @@ function bootSync(){
   });
 }
 
+MODE = getMode();
 load();
 render();
 bootSync();
